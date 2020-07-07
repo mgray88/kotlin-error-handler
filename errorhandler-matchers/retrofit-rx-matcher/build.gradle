@@ -5,16 +5,28 @@ buildscript {
 }
 
 plugins {
-    id "com.jfrog.bintray" version "1.7"
+    id "com.jfrog.bintray"
+    id 'org.jetbrains.kotlin.jvm' version "$kotlin_version"
 }
 
-group 'com.workable'
-version '1.1.0'
+group 'isdigital.errorhandler'
+version '1.0.0'
 
-apply plugin: 'java'
+apply plugin: 'java-library'
 apply plugin: 'maven-publish'
 
-sourceCompatibility = 1.7
+sourceCompatibility = 1.8
+
+compileKotlin {
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
+compileTestKotlin {
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
 
 repositories {
     mavenCentral()
@@ -24,8 +36,9 @@ dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
     testCompile 'org.mockito:mockito-core:1.10.19'
 
-    compile project(':errorhandler')
-    compile 'com.squareup.retrofit2:adapter-rxjava:2.1.0'
+    implementation project(':errorhandler')
+    api 'com.squareup.retrofit2:adapter-rxjava:2.1.0'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
 }
 
 task sourceJar(type: Jar) {
@@ -40,9 +53,9 @@ task javadocJar(type: Jar) {
 publishing {
     publications {
         mavenJava(MavenPublication) {
-            groupId 'com.workable'
+            groupId 'isdigital.errorhandler'
             artifactId 'retrofit-rx-matcher'
-            version '1.1.0'
+            version '1.0.0'
 
             from components.java
 
@@ -78,18 +91,18 @@ bintray {
     publications = ['mavenJava']
     pkg {
         repo = 'maven'
-        name = 'ErrorHandler'
-        desc = 'Error handling library for Android and Java'
-        userOrg = "workable"
+        name = 'kotlin-error-handler'
+        desc = 'Error handling library for Android and Kotlin'
+        userOrg = "is-digital"
         licenses = ['MIT']
-        vcsUrl = 'https://github.com/Workable/java-error-handler'
-        labels = ['java', 'error handler', 'errors', 'android']
+        vcsUrl = 'https://github.com/mgray88/kotlin-error-handler'
+        labels = ['kotlin', 'error handler', 'errors', 'android']
         publicDownloadNumbers = true
         version {
-            name = '1.1.0'
+            name = '1.0.0'
 
-            desc = 'Error handling library for Android and Java'
-            vcsTag = 'v1.1.0'
+            desc = 'Error handling library for Android and Kotlin'
+            vcsTag = 'v1.0.0'
             gpg {
                 sign = true //Determines whether to GPG sign the files. The default is false
             }
