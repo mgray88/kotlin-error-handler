@@ -12,7 +12,7 @@ class Range private constructor(val lowerBound: Int, val upperBound: Int) {
      * @return true if contains, otherwise false
      */
     operator fun contains(httpStatusCode: Int): Boolean {
-        return httpStatusCode >= lowerBound && httpStatusCode <= upperBound
+        return httpStatusCode in lowerBound..upperBound
     }
 
     override fun equals(o: Any?): Boolean {

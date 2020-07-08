@@ -3,7 +3,6 @@ package isdigital.errorhandler.matchers.retrofit
 import isdigital.errorhandler.Action
 import isdigital.errorhandler.ErrorHandler
 import isdigital.errorhandler.ErrorHandler.Companion.createIsolated
-import isdigital.errorhandler.matchers.retrofit.Range.Companion.of
 import isdigital.errorhandler.matchers.retrofit.RetrofitMatcherFactory.create
 import isdigital.errorhandler.matchers.retrofit.RetrofitMatcherFactory.createRange
 import junit.framework.TestCase
@@ -35,24 +34,12 @@ class RetrofitMatcherFactoryTest : TestCase() {
                 Range::class,
                 createRange()
             )
-            .on(400, object : Action {
-                override fun execute(
-                    throwable: Throwable,
-                    errorHandler: ErrorHandler
-                ) {
-                    actionDelegateMock!!.action1()
-                }
-            })
-            .on(
-                of(400, 500),
-                object : Action {
-                    override fun execute(
-                        throwable: Throwable,
-                        errorHandler: ErrorHandler
-                    ) {
-                        actionDelegateMock!!.action1()
-                    }
-                })
+            .on(400) { _, _ ->
+                actionDelegateMock!!.action1()
+            }
+            .on(Range.of(400, 500)) { _, _ ->
+                actionDelegateMock!!.action1()
+            }
             .handle(HttpException(RetrofitHelper.generateErrorResponseWith(400)))
         Mockito.verify(
             actionDelegateMock,
@@ -68,24 +55,12 @@ class RetrofitMatcherFactoryTest : TestCase() {
                 Range::class,
                 createRange()
             )
-            .on(400, object : Action {
-                override fun execute(
-                    throwable: Throwable,
-                    errorHandler: ErrorHandler
-                ) {
-                    actionDelegateMock!!.action1()
-                }
-            })
-            .on(
-                of(450, 450),
-                object : Action {
-                    override fun execute(
-                        throwable: Throwable,
-                        errorHandler: ErrorHandler
-                    ) {
-                        actionDelegateMock!!.action1()
-                    }
-                })
+            .on(400) { _, _ ->
+                actionDelegateMock!!.action1()
+            }
+            .on(Range.of(450, 450)) { _, _ ->
+                actionDelegateMock!!.action1()
+            }
             .handle(HttpException(RetrofitHelper.generateErrorResponseWith(401)))
         Mockito.verify(
             actionDelegateMock,
@@ -97,14 +72,9 @@ class RetrofitMatcherFactoryTest : TestCase() {
     fun test_catching_with_class() {
         createIsolated()
             .bindClass(Int::class, create())
-            .on(500, object : Action {
-                override fun execute(
-                    throwable: Throwable,
-                    errorHandler: ErrorHandler
-                ) {
+            .on(500) { _, _ ->
                     actionDelegateMock!!.action1()
-                }
-            })
+            }
             .handle(HttpException(RetrofitHelper.generateErrorResponseWith(401)))
         Mockito.verify(
             actionDelegateMock,

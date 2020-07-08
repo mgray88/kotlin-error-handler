@@ -51,7 +51,7 @@ class ErrorHandler private constructor() {
      *
      * @param parentErrorHandler the parent @{link ErrorHandler}
      */
-    private constructor(parentErrorHandler: ErrorHandler?) : this() {
+    private constructor(parentErrorHandler: ErrorHandler) : this() {
         this.parentErrorHandler = parentErrorHandler
     }
 
@@ -67,8 +67,22 @@ class ErrorHandler private constructor() {
         matcher: Matcher,
         action: Action
     ): ErrorHandler {
-        actions.add(ActionEntry.from(matcher, action))
+        actions.add(ActionEntry(matcher, action))
         return this
+    }
+
+    /**
+     * Kotlin <1.4 lambda compatibility for `[.on(Matcher, Action)]`
+     */
+    fun on(
+        matcher: (Throwable) -> Boolean,
+        action: Action
+    ): ErrorHandler {
+        return on(object : Matcher {
+            override fun matches(throwable: Throwable): Boolean {
+                return matcher(throwable)
+            }
+        }, action)
     }
 
     /**
@@ -83,7 +97,7 @@ class ErrorHandler private constructor() {
         exceptionClass: KClass<out Throwable>,
         action: Action
     ): ErrorHandler {
-        actions.add(ActionEntry.from(ExceptionMatcher(exceptionClass), action))
+        actions.add(ActionEntry(ExceptionMatcher(exceptionClass), action))
         return this
     }
 
@@ -107,7 +121,7 @@ class ErrorHandler private constructor() {
         val matcherFactory: MatcherFactory<T> =
             getMatcherFactoryForErrorCode(errorCode)
                 ?: throw UnknownErrorCodeException(errorCode)
-        actions.add(ActionEntry.Companion.from(matcherFactory.build(errorCode), action))
+        actions.add(ActionEntry(matcherFactory.build(errorCode), action))
         return this
     }
 
@@ -195,13 +209,13 @@ class ErrorHandler private constructor() {
      * Run a custom code block and assign current ErrorHandler instance
      * to handle a possible exception throw in 'catch'.
      *
-     * @param blockExecutor functional interface containing Exception prone code
+     * @param closure functional interface containing Exception prone code
      */
-    fun run(blockExecutor: BlockExecutor) {
+    fun runHandling(closure: () -> Unit) {
         try {
-            blockExecutor.invoke()
-        } catch (exception: Exception) {
-            handle(exception, localContext)
+            closure()
+        } catch (throwable: Throwable) {
+            handle(throwable, localContext)
         }
     }
 
@@ -225,34 +239,56 @@ class ErrorHandler private constructor() {
      *
      *
      * <pre>
-     * `ErrorHandler
-     * .defaultErrorHandler()
-     * .bind("timeout", errorCode -> throwable -> {
-     * return (throwable instanceof SocketTimeoutException) && throwable.getMessage().contains("Read timed out");
-     * });
+     * ```
+     * ErrorHandler
+     *     .defaultErrorHandler()
+     *     .bind("timeout") { errorCode ->
+     *         Matcher { throwable ->
+     *             return (throwable is SocketTimeoutException) && throwable.message.contains("Read timed out")
+     *         }
+     *     }
      *
      * // ...
      *
      * ErrorHandler
-     * .build()
-     * .on("timeout", (throwable, handler) -> {
-     * showOfflineScreen();
-     * })
-    ` *
-    </pre> *
+     *     .create()
+     *     .on("timeout") { throwable, handler ->
+     *         showOfflineScreen()
+     *     }
+     * ```
+     * </pre>
      *
      *
      * @param <T> the error code type
      * @param errorCode the errorCode value, can use a primitive for clarity and let it be autoboxed
      * @param matcherFactory a factory that given an error code, provides a matcher to match the error against it
      * @return the current `ErrorHandler` instance - to use in command chains
-    </T> */
+     */
     fun <T : Any> bind(
         errorCode: T,
         matcherFactory: MatcherFactory<T>
     ): ErrorHandler {
         errorCodeMap[ErrorCodeIdentifier(errorCode)] = matcherFactory
         return this
+    }
+
+    /**
+     * Kotlin <1.4 lambda compatibility for `[.bind(T, MatcherFactory<T>)]`
+     */
+    fun <T : Any> bind(
+        errorCode: T,
+        matcherFactory: (T) -> (Throwable) -> Boolean
+    ): ErrorHandler {
+        return bind(errorCode, object : MatcherFactory<T> {
+            override fun build(errorCode: T): Matcher {
+                val matcher = matcherFactory(errorCode)
+                return object : Matcher {
+                    override fun matches(throwable: Throwable): Boolean {
+                        return matcher(throwable)
+                    }
+                }
+            }
+        })
     }
 
     /**
@@ -265,30 +301,33 @@ class ErrorHandler private constructor() {
      *
      *
      * <pre>
-     * `ErrorHandler
-     * .defaultErrorHandler()
-     * .bindClass(Integer.class, errorCode -> throwable -> {
-     * return throwable instanceof HTTPException && ((HTTPException)throwable).getStatusCode() == errorCode;
-     * });
+     * ```
+     * ErrorHandler
+     *     .defaultErrorHandler()
+     *     .bindClass(Integer::class) { errorCode ->
+     *         Matcher { throwable ->
+     *             return throwable is HttpException && throwable.code() == errorCode
+     *         }
+     *     }
      *
      * // ...
      *
      * ErrorHandler
-     * .build()
-     * .on(404, (throwable, handler) -> {
-     * showResourceNotFoundError();
-     * })
-     * .on(500, (throwable, handler) -> {
-     * showServerError();
-     * })
-    ` *
-    </pre> *
+     *     .create()
+     *     .on(404) { throwable, handler ->
+     *         showResourceNotFoundError()
+     *     }
+     *     .on(500) { throwable, handler ->
+     *         showServerError()
+     *     }
+     * ````
+     * </pre>
      *
      * @param <T> the error code type
      * @param errorCodeClass the errorCode class
      * @param matcherFactory a factory that given an error code, provides a matcher to match the error against it
      * @return the current `ErrorHandler` instance - to use in command chains
-    </T> */
+     */
     fun <T : Any> bindClass(
         errorCodeClass: KClass<T>,
         matcherFactory: MatcherFactory<T>
@@ -297,6 +336,26 @@ class ErrorHandler private constructor() {
         return this
     }
 
+    /**
+     * Kotlin <1.4 lambda compatibility for `[.bindClass(KClass<T>, MatcherFactory<T>)]`
+     */
+    fun <T : Any> bindClass(
+        errorCodeClass: KClass<T>,
+        matcherFactory: (T) -> (Throwable) -> Boolean
+    ): ErrorHandler {
+        return bindClass(errorCodeClass, object : MatcherFactory<T> {
+            override fun build(errorCode: T): Matcher {
+                val matcher = matcherFactory(errorCode)
+                return object : Matcher {
+                    override fun matches(throwable: Throwable): Boolean {
+                        return matcher(throwable)
+                    }
+                }
+            }
+        })
+    }
+
+    @Suppress("UNCHECKED_CAST")
     protected fun <T : Any> getMatcherFactoryForErrorCode(errorCode: T): MatcherFactory<T>? {
         var matcherFactory: MatcherFactory<T>?
         matcherFactory = errorCodeMap[ErrorCodeIdentifier(errorCode)] as? MatcherFactory<T>
@@ -408,16 +467,17 @@ class ErrorHandler private constructor() {
         }
 
         /**
-         * Create a new @{link ErrorHandler}, that delegates to the default one.
-         *
+         * Create a new @{link ErrorHandler}, that delegates to the default one, or the
+         * parent @{link ErrorHandler} passed in
          *
          * Any default actions, are always executed after the ones registered on this one.
          *
+         * @param parentErrorHandler `ErrorHandler` to use as the parent
          * @return returns a new `ErrorHandler` instance
          */
         @JvmStatic
-        fun create(): ErrorHandler {
-            return ErrorHandler(defaultErrorHandler())
+        fun create(parentErrorHandler: ErrorHandler? = null): ErrorHandler {
+            return ErrorHandler(parentErrorHandler ?: defaultErrorHandler())
         }
 
         /**
@@ -436,4 +496,22 @@ class ErrorHandler private constructor() {
             return defaultInstance!!
         }
     }
+}
+
+/**
+ * Lazy `ErrorHandler` initializer which delegates to a parent, or the `defaultErrorHandler`
+ * if the parent is not supplied. Uses optional lambda function to add actions and bindings to
+ * the new `ErrorHandler`
+ *
+ * @param parentErrorHandler (optional) error handler to delegate default actions to
+ * @param apply (optional) apply function for adding actions and binding
+ * @return lazy initialized `ErrorHandler`
+ */
+inline fun errorHandler(
+    parentErrorHandler: ErrorHandler? = null,
+    noinline apply: (ErrorHandler.() -> Unit)? = null
+) = lazy {
+    val eh = ErrorHandler.create(parentErrorHandler)
+    apply?.invoke(eh)
+    return@lazy eh
 }

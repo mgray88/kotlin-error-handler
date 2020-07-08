@@ -3,8 +3,6 @@ package isdigital.errorhandler
 import isdigital.errorhandler.ErrorHandler.Companion.create
 import isdigital.errorhandler.ErrorHandler.Companion.createIsolated
 import isdigital.errorhandler.ErrorHandler.Companion.defaultErrorHandler
-import isdigital.errorhandler.ErrorHandlerTest.DBError
-import isdigital.errorhandler.FooException
 import junit.framework.TestCase
 import org.junit.Test
 import org.mockito.Mockito
@@ -36,72 +34,39 @@ class ErrorHandlerTest : TestCase() {
             ActionDelegate::class.java
         )
         defaultErrorHandler()
-            .bind(
-                "closed:bar",
-                object : MatcherFactory<String> {
-                    override fun build(errorCode: String): Matcher {
-                        return object : Matcher {
-                            override fun matches(throwable: Throwable): Boolean {
-                                return if (throwable is BarException) {
-                                    !throwable.isOpenBar
-                                } else {
-                                    false
-                                }
-                            }
-                        }
+            .bind("closed:bar") {
+                { throwable ->
+                    if (throwable is BarException) {
+                        !throwable.isOpenBar
+                    } else {
+                        false
                     }
                 }
-            )
-            .bindClass(
-                Int::class,
-                object : MatcherFactory<Int> {
-                    override fun build(errorCode: Int): Matcher {
-                        return object : Matcher {
-                            override fun matches(throwable: Throwable): Boolean {
-                                return if (throwable is QuxException) {
-                                    throwable.errorStatus == errorCode
-                                } else {
-                                    false
-                                }
-                            }
-                        }
+            }
+            .bindClass(Int::class) { errorCode ->
+                { throwable ->
+                    if (throwable is QuxException) {
+                        throwable.errorStatus == errorCode
+                    } else {
+                        false
                     }
                 }
-            )
-            .on(
-                FooException::class,
-                object : Action {
-                    override fun execute(throwable: Throwable, errorHandler: ErrorHandler) {
-                        actionDelegateMock!!.defaultAction1()
-                    }
-                }
-            )
-            .on(
-                500,
-                object : Action {
-                    override fun execute(throwable: Throwable, errorHandler: ErrorHandler) {
-                        actionDelegateMock!!.defaultAction2()
-                    }
-                }
-            )
-            .on(
-                "closed:bar",
-                object : Action {
-                    override fun execute(throwable: Throwable, errorHandler: ErrorHandler) {
-                        actionDelegateMock!!.defaultAction3()
-                    }
-                }
-            )
-            .otherwise(object : Action {
-                override fun execute(throwable: Throwable, errorHandler: ErrorHandler) {
-                    actionDelegateMock!!.defaultOtherwise()
-                }
-            })
-            .always(object : Action {
-                override fun execute(throwable: Throwable, errorHandler: ErrorHandler) {
-                    actionDelegateMock!!.defaultAlways()
-                }
-            })
+            }
+            .on(FooException::class) { _, _ ->
+                actionDelegateMock!!.defaultAction1()
+            }
+            .on(500) { _, _ ->
+                actionDelegateMock!!.defaultAction2()
+            }
+            .on("closed:bar") { _, _ ->
+                actionDelegateMock!!.defaultAction3()
+            }
+            .otherwise { _, _ ->
+                actionDelegateMock!!.defaultOtherwise()
+            }
+            .always { _, _ ->
+                actionDelegateMock!!.defaultAlways()
+            }
     }
 
     override fun tearDown() {
@@ -112,64 +77,36 @@ class ErrorHandlerTest : TestCase() {
     @Test
     fun testActionsExecutionOrder() {
         val errorHandler: ErrorHandler = create()
+            .on(FooException::class) { _, _ ->
+                actionDelegateMock!!.action1()
+            }
             .on(
-                FooException::class,
-                object : Action {
-                    override fun execute(throwable: Throwable, errorHandler: ErrorHandler) {
-                        actionDelegateMock!!.action1()
-                    }
-                }
-            )
-            .on(
-                object : Matcher {
-                    override fun matches(throwable: Throwable): Boolean {
-                        return try {
-                            FooException::class.java.cast(throwable).isFatal
-                        } catch (ignore: ClassCastException) {
-                            false
-                        }
+                { throwable ->
+                    try {
+                        FooException::class.java.cast(throwable).isFatal
+                    } catch (ignore: ClassCastException) {
+                        false
                     }
                 },
-                object : Action {
-                    override fun execute(throwable: Throwable, errorHandler: ErrorHandler) {
-                        actionDelegateMock!!.action2()
-                    }
+                { _, _ ->
+                    actionDelegateMock!!.action2()
                 }
             )
-            .on(
-                "closed:bar",
-                object : Action {
-                    override fun execute(throwable: Throwable, errorHandler: ErrorHandler) {
-                        actionDelegateMock!!.action3()
-                    }
-                }
-            )
-            .on(
-                400,
-                object : Action {
-                    override fun execute(throwable: Throwable, errorHandler: ErrorHandler) {
-                        actionDelegateMock!!.action4()
-                    }
-                }
-            )
-            .on(
-                500,
-                object : Action {
-                    override fun execute(throwable: Throwable, errorHandler: ErrorHandler) {
-                        actionDelegateMock!!.action5()
-                    }
-                }
-            )
-            .otherwise(object : Action {
-                override fun execute(throwable: Throwable, errorHandler: ErrorHandler) {
-                    actionDelegateMock!!.otherwise1()
-                }
-            })
-            .always(object : Action {
-                override fun execute(throwable: Throwable, errorHandler: ErrorHandler) {
-                    actionDelegateMock!!.always1()
-                }
-            })
+            .on("closed:bar") { _, _ ->
+                actionDelegateMock!!.action3()
+            }
+            .on(400) { _, _ ->
+                actionDelegateMock!!.action4()
+            }
+            .on(500) { _, _ ->
+                actionDelegateMock!!.action5()
+            }
+            .otherwise { _, _ ->
+                actionDelegateMock!!.otherwise1()
+            }
+            .always { _, _ ->
+                actionDelegateMock!!.always1()
+            }
         val testVerifier1 = Mockito.inOrder(actionDelegateMock)
         errorHandler.handle(FooException("test1"))
         testVerifier1.verify(
@@ -225,14 +162,9 @@ class ErrorHandlerTest : TestCase() {
     @Test
     fun testSkipDefaults() {
         create()
-            .on(
-                FooException::class,
-                object : Action {
-                    override fun execute(throwable: Throwable, errorHandler: ErrorHandler) {
-                        actionDelegateMock!!.action1()
-                    }
-                }
-            )
+            .on(FooException::class) { _, _ ->
+                actionDelegateMock!!.action1()
+            }
             .handle(FooException("foo error"))
         Mockito.verify(
             actionDelegateMock,
@@ -244,15 +176,10 @@ class ErrorHandlerTest : TestCase() {
         )!!.defaultAction1()
         Mockito.reset(actionDelegateMock)
         create()
-            .on(
-                FooException::class,
-                object : Action {
-                    override fun execute(throwable: Throwable, handler: ErrorHandler) {
-                        actionDelegateMock!!.action1()
-                        handler.skipDefaults()
-                    }
-                }
-            )
+            .on(FooException::class) { _, handler ->
+                actionDelegateMock!!.action1()
+                handler.skipDefaults()
+            }
             .handle(FooException("foo error"))
         Mockito.verify(
             actionDelegateMock,
@@ -268,39 +195,19 @@ class ErrorHandlerTest : TestCase() {
     fun testSkipFollowing() {
         val testVerifier = Mockito.inOrder(actionDelegateMock)
         create()
-            .on(
-                FooException::class,
-                object : Action {
-                    override fun execute(throwable: Throwable, errorHandler: ErrorHandler) {
-                        actionDelegateMock!!.action1()
-                    }
-                }
-            )
-            .on(
-                FooException::class,
-                object : Action {
-                    override fun execute(throwable: Throwable, handler: ErrorHandler) {
-                        actionDelegateMock!!.action2()
-                        handler.skipFollowing()
-                    }
-                }
-            )
-            .on(
-                FooException::class,
-                object : Action {
-                    override fun execute(throwable: Throwable, errorHandler: ErrorHandler) {
-                        actionDelegateMock!!.action3()
-                    }
-                }
-            )
-            .on(
-                FooException::class,
-                object : Action {
-                    override fun execute(throwable: Throwable, errorHandler: ErrorHandler) {
-                        actionDelegateMock!!.action4()
-                    }
-                }
-            )
+            .on(FooException::class) { _, _ ->
+                actionDelegateMock!!.action1()
+            }
+            .on(FooException::class) { _, handler ->
+                actionDelegateMock!!.action2()
+                handler.skipFollowing()
+            }
+            .on(FooException::class) { _, _ ->
+                actionDelegateMock!!.action3()
+            }
+            .on(FooException::class) { _, _ ->
+                actionDelegateMock!!.action4()
+            }
             .handle(FooException("foo error"))
         testVerifier.verify(
             actionDelegateMock
@@ -319,39 +226,19 @@ class ErrorHandlerTest : TestCase() {
     fun testSkipAlways() {
         val testVerifier = Mockito.inOrder(actionDelegateMock)
         create()
-            .on(
-                FooException::class,
-                object : Action {
-                    override fun execute(throwable: Throwable, errorHandler: ErrorHandler) {
-                        actionDelegateMock!!.action1()
-                    }
-                }
-            )
-            .on(
-                FooException::class,
-                object : Action {
-                    override fun execute(throwable: Throwable, handler: ErrorHandler) {
-                        actionDelegateMock!!.action2()
-                        handler.skipAlways()
-                    }
-                }
-            )
-            .on(
-                FooException::class,
-                object : Action {
-                    override fun execute(throwable: Throwable, errorHandler: ErrorHandler) {
-                        actionDelegateMock!!.action3()
-                    }
-                }
-            )
-            .on(
-                FooException::class,
-                object : Action {
-                    override fun execute(throwable: Throwable, errorHandler: ErrorHandler) {
-                        actionDelegateMock!!.action4()
-                    }
-                }
-            )
+            .on(FooException::class) { _, _ ->
+                actionDelegateMock!!.action1()
+            }
+            .on(FooException::class) { _, handler ->
+                actionDelegateMock!!.action2()
+                handler.skipAlways()
+            }
+            .on(FooException::class) { _, _ ->
+                actionDelegateMock!!.action3()
+            }
+            .on(FooException::class) { _, _ ->
+                actionDelegateMock!!.action4()
+            }
             .handle(FooException("foo error"))
         testVerifier.verify(
             actionDelegateMock
@@ -376,30 +263,16 @@ class ErrorHandlerTest : TestCase() {
     fun testEnumClassHandling() {
         val testVerifier = Mockito.inOrder(actionDelegateMock)
         create()
-            .bindClass(
-                DBError::class,
-                object : MatcherFactory<DBError> {
-                    override fun build(errorCode: DBError): Matcher {
-                        return object : Matcher {
-                            override fun matches(throwable: Throwable): Boolean {
-                                if (throwable is DBErrorException) {
-                                    return DBError.from(throwable) == errorCode
-                                }
-                                return false
-                            }
-                        }
-                    }
+            .bindClass(DBError::class) { errorCode ->
+                { throwable ->
+                    throwable is DBErrorException &&
+                        DBError.from(throwable) == errorCode
                 }
-            )
-            .on(
-                DBError.READ_ONLY,
-                object : Action {
-                    override fun execute(throwable: Throwable, errorHandler: ErrorHandler) {
-                        actionDelegateMock!!.action1()
-                        errorHandler.skipAlways()
-                    }
-                }
-            )
+            }
+            .on(DBError.READ_ONLY) { _, errorHandler ->
+                actionDelegateMock!!.action1()
+                errorHandler.skipAlways()
+            }
             .handle(DBErrorException("read-only"))
         testVerifier.verify(
             actionDelegateMock
@@ -412,34 +285,19 @@ class ErrorHandlerTest : TestCase() {
     fun testErrorHandlerBlockExecutorExceptionHandling() {
         val testVerifier = Mockito.inOrder(actionDelegateMock)
         createIsolated()
-            .bindClass(
-                DBError::class,
-                object : MatcherFactory<DBError> {
-                    override fun build(errorCode: DBError): Matcher {
-                        return object : Matcher {
-                            override fun matches(throwable: Throwable): Boolean {
-                                return throwable is DBErrorException && DBError.from(
-                                    throwable
-                                ) == errorCode
-                            }
-                        }
-                    }
+            .bindClass(DBError::class) { errorCode ->
+                { throwable ->
+                    throwable is DBErrorException &&
+                        DBError.from(throwable) == errorCode
                 }
-            )
-            .on(
-                DBError.READ_ONLY,
-                object : Action {
-                    override fun execute(throwable: Throwable, errorHandler: ErrorHandler) {
-                        actionDelegateMock!!.action1()
-                        errorHandler.skipAlways()
-                    }
-                }
-            )
-            .run(object : BlockExecutor {
-                override fun invoke() {
-                    throw DBErrorException("read-only")
-                }
-            })
+            }
+            .on(DBError.READ_ONLY) { _, errorHandler ->
+                actionDelegateMock!!.action1()
+                errorHandler.skipAlways()
+            }
+            .runHandling {
+                throw DBErrorException("read-only")
+            }
         testVerifier.verify(
             actionDelegateMock
         )!!.action1()
@@ -451,34 +309,19 @@ class ErrorHandlerTest : TestCase() {
     fun testErrorHandlerBlockExecutorIgnoresNotMatchedException() {
         val testVerifier = Mockito.inOrder(actionDelegateMock)
         createIsolated()
-            .bindClass(
-                DBError::class,
-                object : MatcherFactory<DBError> {
-                    override fun build(errorCode: DBError): Matcher {
-                        return object : Matcher {
-                            override fun matches(throwable: Throwable): Boolean {
-                                return throwable is DBErrorException && DBError.from(
-                                    throwable
-                                ) == errorCode
-                            }
-                        }
-                    }
+            .bindClass(DBError::class) { errorCode ->
+                { throwable ->
+                    throwable is DBErrorException &&
+                        DBError.from(throwable) == errorCode
                 }
-            )
-            .on(
-                DBError.READ_ONLY,
-                object : Action {
-                    override fun execute(throwable: Throwable, errorHandler: ErrorHandler) {
-                        actionDelegateMock!!.action1()
-                        errorHandler.skipAlways()
-                    }
-                }
-            )
-            .run(object : BlockExecutor {
-                override fun invoke() {
-                    throw DBErrorException("read")
-                }
-            })
+            }
+            .on(DBError.READ_ONLY) { _, errorHandler ->
+                actionDelegateMock!!.action1()
+                errorHandler.skipAlways()
+            }
+            .runHandling {
+                throw DBErrorException("read")
+            }
         testVerifier.verifyNoMoreInteractions()
         Mockito.verifyNoMoreInteractions(actionDelegateMock)
     }
@@ -488,37 +331,23 @@ class ErrorHandlerTest : TestCase() {
         val testVerifier = Mockito.inOrder(actionDelegateMock)
         create()
             .skipDefaults()
-            .on(
-                "closed:bar",
-                object : Action {
-                    override fun execute(throwable: Throwable, errorHandler: ErrorHandler) {
-                        actionDelegateMock!!.action1()
-                    }
-                }
-            )
-            .run(object : BlockExecutor {
-                override fun invoke() {
-                    throw BarException("", false)
-                }
-            })
+            .on("closed:bar") { _, _ ->
+                actionDelegateMock!!.action1()
+            }
+            .runHandling {
+                throw BarException("", false)
+            }
         testVerifier.verify(
             actionDelegateMock
         )!!.action1()
         Mockito.verifyNoMoreInteractions(actionDelegateMock)
         create()
-            .on(
-                "closed:bar",
-                object : Action {
-                    override fun execute(throwable: Throwable, errorHandler: ErrorHandler) {
-                        actionDelegateMock!!.action2()
-                    }
-                }
-            )
-            .run(object : BlockExecutor {
-                override fun invoke() {
-                    throw BarException("", false)
-                }
-            })
+            .on("closed:bar") { _, _ ->
+                actionDelegateMock!!.action2()
+            }
+            .runHandling {
+                throw BarException("", false)
+            }
         testVerifier.verify(
             actionDelegateMock
         )!!.action2()

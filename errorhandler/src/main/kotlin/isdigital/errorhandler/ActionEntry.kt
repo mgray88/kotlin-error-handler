@@ -53,20 +53,4 @@ class ActionEntry
     override fun hashCode(): Int {
         return matcher.hashCode() xor action.hashCode()
     }
-
-    companion object {
-        /**
-         * Convenience method for creating an ActionEntry
-         *
-         * @param matcher the matcher object in the ActionEntry
-         * @param action  the action object in the ActionEntry
-         * @return a new ActionEntry
-         */
-        fun from(
-            matcher: Matcher,
-            action: Action
-        ): ActionEntry {
-            return ActionEntry(matcher, action)
-        }
-    }
 }
