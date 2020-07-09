@@ -94,7 +94,7 @@ bintray {
     key = localProps.getProperty('bintrayApiKey')
     publications = ['mavenJava']
     pkg {
-        repo = 'maven'
+        repo = 'kotlin-error-handler'
         name = 'kotlin-error-handler'
         desc = 'Error handling library for Android and Kotlin'
         userOrg = "is-digital"

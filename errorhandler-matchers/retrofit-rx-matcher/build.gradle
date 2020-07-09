@@ -37,7 +37,7 @@ dependencies {
     testCompile 'org.mockito:mockito-core:1.10.19'
 
     implementation project(':errorhandler')
-    api 'com.squareup.retrofit2:adapter-rxjava:2.1.0'
+    implementation 'com.squareup.retrofit2:adapter-rxjava:2.1.0'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
 }
 
@@ -90,8 +90,8 @@ bintray {
     key = localProps.getProperty('bintrayApiKey')
     publications = ['mavenJava']
     pkg {
-        repo = 'maven'
-        name = 'kotlin-error-handler'
+        repo = 'kotlin-error-handler'
+        name = 'retrofit-rx-matcher'
         desc = 'Error handling library for Android and Kotlin'
         userOrg = "is-digital"
         licenses = ['MIT']
