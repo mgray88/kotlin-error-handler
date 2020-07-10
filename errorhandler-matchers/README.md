@@ -9,7 +9,7 @@ In order to use them, provide an instance of your desired MatcherFactory when bu
 ### Retrofit-Rx-Matcher
 
 ```gradle
-compile 'com.workable:retrofit-rx-matcher:1.1.0'
+implementation 'isdigital.errorhandler:retrofit-rx-matcher:1.0.1'
 ```
 
 ```java
@@ -17,17 +17,17 @@ compile 'com.workable:retrofit-rx-matcher:1.1.0'
 ErrorHandler
   .create()
   .bind(400, RetrofitMatcherFactory.create())
-  .on(400, (throwable, errorHandler) -> showErrorMessage("what?"))
-  .handle(httpException);
+  .on(400) { throwable, errorHandler -> showErrorMessage("what?") }
+  .handle(httpException)
 
 // Or bind all integers to Retrofit errors
 
 ErrorHandler
   .create()
-  .bindClass(Range.class, RetrofitMatcherFactory.createRange())
-  .bindClass(Integer.class, RetrofitMatcherFactory.create())
-  .on(400, (throwable, errorHandler) -> showErrorMessage("what?"))
-  .on(Range.of(500, 599), (throwable, errorHandler) -> showErrorMessage("kaboom"))
-  .handle(httpException);
+  .bindClass(Range::class, RetrofitMatcherFactory.createRange())
+  .bindClass(Int::class, RetrofitMatcherFactory.create())
+  .on(400) { throwable, errorHandler -> showErrorMessage("what?") }
+  .on(Range.of(500, 599)) { throwable, errorHandler -> showErrorMessage("kaboom") }
+  .handle(httpException)
 
 ```

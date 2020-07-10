@@ -11,7 +11,7 @@ Download the [latest JAR](https://bintray.com/is-digital/kotlin-error-handler/ko
 <dependency>
   <groupId>isdigital.errorhandler</groupId>
   <artifactId>kotlin-error-handler</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
   <type>pom</type>
 </dependency>
 ```
@@ -19,7 +19,7 @@ Download the [latest JAR](https://bintray.com/is-digital/kotlin-error-handler/ko
 or Gradle:
 
 ```groovy
-implementation 'isdigital.errorhandler:kotlin-error-handler:1.0.0'
+implementation 'isdigital.errorhandler:kotlin-error-handler:1.0.1'
 ```
 
 

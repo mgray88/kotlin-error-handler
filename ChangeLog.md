@@ -1,5 +1,12 @@
 # ChangeLog
 
+## 1.0.1
+
+### New
+
+ - Added reified inline extension for `on` to allow typing the action's `Throwable` parameter
+ - Updated [`retrofit-rx-matcher README`](https://github.com/mgray88/kotlin-error-handler/tree/1.0.1/errorhandler-matchers)
+
 ## 1.0.0
 
 ### New

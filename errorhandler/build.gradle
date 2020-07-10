@@ -10,7 +10,7 @@ plugins {
 }
 
 group 'isdigital.errorhandler'
-version '1.0.0'
+version '1.0.1'
 
 apply plugin: 'java-library'
 apply plugin: 'maven-publish'
@@ -59,7 +59,7 @@ publishing {
         mavenJava(MavenPublication) {
             groupId 'isdigital.errorhandler'
             artifactId 'kotlin-error-handler'
-            version '1.0.0'
+            version '1.0.1'
 
             from components.java
 
@@ -103,10 +103,10 @@ bintray {
         labels = ['kotlin', 'error handler', 'errors', 'android']
         publicDownloadNumbers = true
         version {
-            name = '1.0.0'
+            name = '1.0.1'
 
             desc = 'Error handling library for Android and Kotlin'
-            vcsTag = '1.0.0'
+            vcsTag = '1.0.1'
             gpg {
                 sign = true //Determines whether to GPG sign the files. The default is false
             }
