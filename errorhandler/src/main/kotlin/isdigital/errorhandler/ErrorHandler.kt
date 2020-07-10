@@ -499,6 +499,18 @@ class ErrorHandler private constructor() {
 }
 
 /**
+ * Wrapper around `[.on(KClass, Action)]` to allow action's `Throwable` parameter
+ * to be typed to the `Throwable` expected
+ */
+inline fun <reified T : Throwable> ErrorHandler.on(
+    noinline action: (T, ErrorHandler) -> Unit
+): ErrorHandler {
+    return on(T::class) { throwable, errorHandler ->
+        action(throwable as T, errorHandler)
+    }
+}
+
+/**
  * Lazy `ErrorHandler` initializer which delegates to a parent, or the `defaultErrorHandler`
  * if the parent is not supplied. Uses optional lambda function to add actions and bindings to
  * the new `ErrorHandler`

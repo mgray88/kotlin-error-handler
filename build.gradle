@@ -10,7 +10,7 @@ plugins {
 }
 
 group 'isdigital.errorhandler'
-version '1.0.0'
+version '1.0.1'
 
 apply plugin: 'java-library'
 apply plugin: 'maven-publish'
@@ -30,7 +30,7 @@ publishing {
         mavenJava(MavenPublication) {
             groupId 'isdigital.errorhandler'
             artifactId 'parent'
-            version '1.0.0'
+            version '1.0.1'
         }
     }
 

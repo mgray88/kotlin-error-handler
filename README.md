@@ -11,7 +11,7 @@ Download the [latest JAR](https://bintray.com/is-digital/kotlin-error-handler/ko
 <dependency>
   <groupId>isdigital.errorhandler</groupId>
   <artifactId>kotlin-error-handler</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
   <type>pom</type>
 </dependency>
 ```
@@ -19,7 +19,7 @@ Download the [latest JAR](https://bintray.com/is-digital/kotlin-error-handler/ko
 or Gradle:
 
 ```groovy
-implementation 'isdigital.errorhandler:kotlin-error-handler:1.0.0'
+implementation 'isdigital.errorhandler:kotlin-error-handler:1.0.1'
 ```
 
 
@@ -111,7 +111,7 @@ try {
 ### Run blocks of code using ErrorHandler.runHandling
 
 ```kotlin
-ErrorHandler.runHandling { fetchNewMessages() }
+errorHandler.runHandling { fetchNewMessages() }
 ```
 
 ### Override defaults when needed
@@ -140,6 +140,27 @@ try {
         errorHandler.skipAlways()
     }
     .handle(ex)
+}
+```
+
+### Extension functions provide type safety and ease of initialization
+
+```kotlin
+// Initialize a local `ErrorHandler` lazily and add actions inline to keep logic in one location
+// Inherits defaults from `defaultErrorHandler` or the provided optional parent `ErrorHandler`
+private val errorHandler by errorHandler(optionalParent) {
+  on(404) { throwable, errorHandler ->
+    displayAlert("Not found!")
+  }
+  on("offline") { throwable, errorHandler ->
+    displayAlert("Network dead!")
+  }
+
+
+  // Add typed actions on specific exceptions with an extension function
+  on<StaleDataException> { exception, errorHandler ->
+    // exception is of type StaleDataException
+  } 
 }
 ```
 
@@ -183,6 +204,12 @@ ErrorHandler is __thread-safe__.
 * `bindClass(KClass<T>, MatcherFactory<T>)` Bind class _T_ to match errors through a matcher provided by _MatcherFactory_.
 
 * `clear()` Clear all registered _Actions_.
+
+### Convenience Extensions
+
+* `errorHandler(ErrorHandler?, (ErrorHandler.() -> Unit)?)` Lazy initializer keeps error handling logic in one place.
+
+* `on<T : Exception>((T, ErrorHandler) -> Unit)` Register a typed _Action_ to be executed if error is an instance of `T`.
 
 ### Execute
 
